@@ -1,22 +1,21 @@
-# Vigilant Scanner
+# VGLS/Vigilant Scanner
 
-**vgls** is a Python-based CLI tool designed for monitoring file integrity, detecting changes in directories, and identifying potential security threats. This tool offers an efficient solution to track modifications, additions, and deletions in directories, making it ideal for system administrators, developers, and security professionals.
+**vgls** is a Python-based CLI tool for monitoring file integrity, detecting changes, analyzing logs and identifying 
+potential security threats. 
 
 ---
 
 ## 🚀 Features
 
-- **File Integrity Monitoring**: Detect changes in file content, metadata, and structure.
-- **Suspicious Change Detection**: Monitor directories for unauthorized or suspicious changes (permissions, owner, etc).
-- **Log Analysis** *(In Progress)*: Analyze logs for security threats and anomalies (coming soon).
-- **Database Integration**: Store and compare file metadata using SQLite.
-- **Extensible CLI**: Intuitive commands for initialization, scanning, and updating.
+- **Files Integrity Monitoring**: Detect changes in file content, metadata, and structure. Monitor 
+directories for unauthorized or suspicious changes (permissions, owner, etc).
+- **Log Analysis** *(In Progress)*: Analyze logs for security threats and anomalies.
+- **CVE Detection** *(In Progress)*: Scan system for known CVEs from National Vulnerability Database and CVE Mitre.
 
 ---
 
 ## 🛠 Installation
 
-Ensure Python 3.10 or later is installed.
 ```bash
 pip install vigilant-scanner
 ```
@@ -26,6 +25,8 @@ pip install vigilant-scanner
 ## 📋 Usage
 
 ### CLI Commands
+
+TODO: Add gif with example of usage.
 
 1. **Initialize the Database**
    Create a snapshot of the current directory state and store metadata in the database:

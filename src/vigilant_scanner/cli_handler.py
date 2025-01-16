@@ -2,6 +2,7 @@ import typer
 
 from scanner.scanner import Scanner
 from scanner.db_manager import DatabaseManager
+from cve_detector.cve_detector import scan_for_cves
 
 app = typer.Typer()
 
@@ -74,6 +75,13 @@ def update(directory: str):
     db_manager.delete_removed_files(current_files)
 
     print(f"Database updated for directory: {directory}")
+
+
+@app.command()
+def cve_scan():
+    """Scan the system and search for known CVEs."""
+    print("Scanning system for known CVEs...")
+    scan_for_cves()
 
 
 @app.command()
