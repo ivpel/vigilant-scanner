@@ -1,6 +1,6 @@
 # Vigilant Scanner
 
-**Vigilant Scanner (vgls)** is a Python-based CLI tool designed for monitoring file integrity, detecting changes in directories, and identifying potential security threats. This tool offers an efficient solution to track modifications, additions, and deletions in directories, making it ideal for system administrators, developers, and security professionals.
+**vgls (Vigilant Scanner )** is a Python-based CLI tool designed for monitoring file integrity, detecting changes in directories, and identifying potential security threats. This tool offers an efficient solution to track modifications, additions, and deletions in directories, making it ideal for system administrators, developers, and security professionals.
 
 ---
 
@@ -17,8 +17,7 @@
 
 ## 🛠 Installation
 
-Ensure Python 3.10 or later is installed. Then, install Vigilant Scanner using the steps below:
-
+Ensure Python 3.10 or later is installed.
 ```bash
 pip install vigilant-scanner
 ```
@@ -59,15 +58,20 @@ pip install vigilant-scanner
    vgls update /path/to/directory
    ```
 
-4. **Generate Reports** *(Placeholder)*
-   Generate a detailed report of detected changes (coming soon):
-   ```bash
-   vgls report
-   ```
-
 ---
 
 ## ⚙️ How It Works
+
+```bash
+# Initialize the database with the current state of a directory
+vgls init /var/www
+
+# Perform a scan to detect changes
+vgls scan /var/www
+
+# Update the database after legitimate changes are made (deploy was conducted etc.)
+vgls update /var/www
+```
 
 1. **Initialization (`init`)**
    - Scans a directory and stores metadata (file path, hash, size, permissions, etc.) in a SQLite database.
@@ -80,20 +84,6 @@ pip install vigilant-scanner
    - Updates the database to reflect the latest directory state.
    - Inserts new files, updates modified files, and removes deleted files.
 
----
-
-## 📝 Example Workflow
-
-```bash
-# Initialize the database with the current state of a directory
-vgls init /var/www
-
-# Perform a scan to detect changes
-vgls scan /var/www
-
-# Update the database after legitimate changes are made (deploy was conducted etc.)
-vgls update /var/www
-```
 
 ---
 

@@ -9,7 +9,7 @@ app = typer.Typer()
 @app.command()
 def init(directory: str):
     """
-    Scan a directory, initialize the database, and store metadata.
+    Scan a directory, initialize the database, create stamp of current state and store metadata.
     """
     print(f"Creating a snapshot of the current state for directory: {directory}")
     metadata_list = Scanner(directory).scan_directory()
@@ -57,7 +57,7 @@ def scan(directory: str):
 @app.command()
 def update(directory: str):
     """
-    Update the database with the current file state.
+    Update the database with the current file state (when authorized changes were made).
     """
     print(f"Updating database for directory: {directory}")
     scanner = Scanner(directory)
