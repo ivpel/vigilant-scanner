@@ -8,7 +8,7 @@ version = "0.0.1"
 authors = [
   { name="Pelykh Ivan", email="ivan.pelykh@protonmail.com" },
 ]
-description = "A CLI tool for monitoring file integrity, detecting changes, analyzing logs and identifying potential security threats. "
+description = "A CLI tool for monitoring file integrity, detecting changes, analyzing logs and identifying potential security threats."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
