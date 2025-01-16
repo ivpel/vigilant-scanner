@@ -1,17 +1,16 @@
 # Vigilant Scanner
 
-**vgls (Vigilant Scanner )** is a Python-based CLI tool designed for monitoring file integrity, detecting changes in directories, and identifying potential security threats. This tool offers an efficient solution to track modifications, additions, and deletions in directories, making it ideal for system administrators, developers, and security professionals.
+**vgls** is a Python-based CLI tool designed for monitoring file integrity, detecting changes in directories, and identifying potential security threats. This tool offers an efficient solution to track modifications, additions, and deletions in directories, making it ideal for system administrators, developers, and security professionals.
 
 ---
 
 ## 🚀 Features
 
 - **File Integrity Monitoring**: Detect changes in file content, metadata, and structure.
-- **Change Detection**: Identify newly added, modified, or deleted files between scans.
-- **Malware Detection**: Monitor directories for unauthorized or suspicious changes.
+- **Suspicious Change Detection**: Monitor directories for unauthorized or suspicious changes (permissions, owner, etc).
+- **Log Analysis** *(In Progress)*: Analyze logs for security threats and anomalies (coming soon).
 - **Database Integration**: Store and compare file metadata using SQLite.
 - **Extensible CLI**: Intuitive commands for initialization, scanning, and updating.
-- **Log Analysis** *(In Progress)*: Analyze logs for security threats and anomalies (coming soon).
 
 ---
 
@@ -33,19 +32,11 @@ pip install vigilant-scanner
    ```bash
    vgls init <directory>
    ```
-   Example:
-   ```bash
-   vgls init /path/to/directory
-   ```
 
 2. **Scan and Compare**
    Scan the directory and compare results with the last snapshot:
    ```bash
    vgls scan <directory>
-   ```
-   Example:
-   ```bash
-   vgls scan /path/to/directory
    ```
 
 3. **Update the Database**
@@ -53,10 +44,7 @@ pip install vigilant-scanner
    ```bash
    vgls update <directory>
    ```
-   Example:
-   ```bash
-   vgls update /path/to/directory
-   ```
+
 
 ---
 
