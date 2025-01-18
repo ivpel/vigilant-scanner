@@ -7,10 +7,9 @@ potential security threats.
 
 ## 🚀 Features
 
-- **Files Integrity Monitoring**: Detect changes in file content, metadata, and structure. Monitor 
+- **System Integrity Monitoring**: Detect changes in file content, metadata, and structure. Monitor 
 directories for unauthorized or suspicious changes (permissions, owner, etc).
 - **Log Analysis** *(In Progress)*: Analyze logs for security threats and anomalies.
-- **CVE Detection** *(In Progress)*: Scan system for known CVEs from National Vulnerability Database and CVE Mitre.
 
 ---
 

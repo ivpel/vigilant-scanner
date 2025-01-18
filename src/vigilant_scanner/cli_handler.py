@@ -1,8 +1,7 @@
 import typer
-
 from scanner.scanner import Scanner
 from scanner.db_manager import DatabaseManager
-from cve_detector.cve_detector import scan_for_cves
+from log_analyzer.log_analyzer import scan_directory_for_logs
 
 app = typer.Typer()
 
@@ -10,7 +9,7 @@ app = typer.Typer()
 @app.command()
 def init(directory: str):
     """
-    Scan a directory, initialize the database, create stamp of current state and store metadata.
+    Scan a directory, initialize the database, create a snapshot of the current state, and store metadata.
     """
     print(f"Creating a snapshot of the current state for directory: {directory}")
     metadata_list = Scanner(directory).scan_directory()
@@ -78,10 +77,12 @@ def update(directory: str):
 
 
 @app.command()
-def cve_scan():
-    """Scan the system and search for known CVEs."""
-    print("Scanning system for known CVEs...")
-    scan_for_cves()
+def logs_scan(directory: str):
+    """
+    Scan all .log files in the provided directory for malicious activity.
+    """
+    print(f"Scanning all .log files in directory: {directory}")
+    scan_directory_for_logs(directory)
 
 
 @app.command()
