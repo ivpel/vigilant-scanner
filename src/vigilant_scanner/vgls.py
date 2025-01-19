@@ -1,23 +1,27 @@
+#!/usr/bin/env python3
 import typer
 from scanner.scanner import Scanner
 from scanner.db_manager import DatabaseManager
 from log_analyzer.log_analyzer import scan_directory_for_logs
 
-app = typer.Typer()
+app = typer.Typer(help="A CLI tool for integrity checking and log analysis. Use long commands or shortcuts like 'i-i' "
+                       "and 'l-s'.")
 
 
-@app.command()
+@app.command("integrity-init")
+@app.command("i-i", hidden=True)
 def init(directory: str):
     """
-    Scan a directory, initialize the database, create a snapshot of the current state, and store metadata.
+    Create a snapshot of the directory for the current state - scan directory, initialize the database, and store metadata.
     """
-    print(f"Creating a snapshot of the current state for directory: {directory}")
+    print(f"Creating a snapshot for directory: {directory}")
     metadata_list = Scanner(directory).scan_directory()
     DatabaseManager().update_or_insert_metadata(metadata_list)
     print(f"Initialization complete. Metadata stored in database.")
 
 
-@app.command()
+@app.command("integrity-scan")
+@app.command("i-s", hidden=True)
 def scan(directory: str):
     """
     Scan the target directory and compare results with the last scan stored in the database.
@@ -54,7 +58,8 @@ def scan(directory: str):
             print(f"Deleted file: {stored_file}")
 
 
-@app.command()
+@app.command("integrity-update")
+@app.command("i-u", hidden=True)
 def update(directory: str):
     """
     Update the database with the current file state (when authorized changes were made).
@@ -76,7 +81,8 @@ def update(directory: str):
     print(f"Database updated for directory: {directory}")
 
 
-@app.command()
+@app.command("log-scan")
+@app.command("l-s", hidden=True)
 def logs_scan(directory: str):
     """
     Scan all .log files in the provided directory for malicious activity.
@@ -85,12 +91,17 @@ def logs_scan(directory: str):
     scan_directory_for_logs(directory)
 
 
-@app.command()
-def report():
+@app.command("full-scan")
+@app.command("f-s", hidden=True)
+def full_scan(directory: str):
     """
-    Generate a detailed report on detected changes.
+    Perform a full scan of the directory: integrity checking and log analysis.
     """
-    print("Report generation is not implemented yet.")
+    print("=== Performing Integrity Scan ===")
+    init(directory)
+
+    print("\n=== Performing Log Analysis ===")
+    logs_scan(directory)
 
 
 if __name__ == "__main__":
