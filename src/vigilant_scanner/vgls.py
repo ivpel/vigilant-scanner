@@ -39,8 +39,9 @@ def init(directory: str):
     db = DatabaseManager()
     db.init_db()
     db.update_or_insert_metadata(metadata_list)
-    console.print(
-        Panel(f"[green]Initialization complete[/green]. Snapshot stored in: {db.db_path}", title="Init", style="bold"))
+    console.print(Panel(f"[green]Initialization completed![/green]\n"
+                        f"Target: {directory}\n"
+                        f"Stored: {db.db_path}", style="bold"))
 
 
 @app.command("integrity-scan")
@@ -90,7 +91,7 @@ def update(directory: str):
     """
     Update the database with the current file state (when authorized changes were made).
     """
-    console.print(Text(f"Updating database for directory: {directory}", style="bold"))
+    console.print(Text(f"Updating snapshot for directory: {directory}", style="bold"))
     scanner = Scanner(directory)
     db_manager = DatabaseManager()
 
@@ -101,7 +102,9 @@ def update(directory: str):
         db_manager.update_or_insert_metadata(current_metadata_list)
         db_manager.delete_removed_files(current_files)
 
-    console.print(Text(f"Database updated for directory: {directory}", style="bold green"))
+    console.print(Panel(f"[green]Snapshot updated![/green]\n"
+                        f"Target: {directory}\n"
+                        f"Stored: {db_manager.db_path}", style="bold"))
 
 
 @app.command("log-scan")
@@ -144,10 +147,10 @@ def full_scan(directory: str):
     """
     Perform a full scan of the directory: integrity checking and log analysis.
     """
-    console.print(Text("=== Performing Integrity Scan ===", style="bold"))
+    console.print(Text("Performing Integrity Scan", style="bold"))
     scan(directory)
 
-    console.print(Text("\n=== Performing Log Analysis ===", style="bold"))
+    console.print(Text("Performing Log Analysis", style="bold"))
     logs_scan(directory)
 
 
