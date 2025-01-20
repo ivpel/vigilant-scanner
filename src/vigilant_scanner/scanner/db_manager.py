@@ -2,11 +2,10 @@ import sqlite3
 
 
 class DatabaseManager:
-    def __init__(self, db_path="file_monitor.db"):
+    def __init__(self, db_path="vgls_snap.db"):
         self.db_path = db_path
-        self._create_table_if_not_exists()
 
-    def _create_table_if_not_exists(self):
+    def init_db(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("""

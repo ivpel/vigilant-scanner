@@ -1,73 +1,80 @@
 import re
 import os
-
-# Define patterns for malicious activities
-MALICIOUS_PATTERNS = {
-    "XSS": re.compile(r"<script>|onerror=|document\.cookie", re.IGNORECASE),
-    "SQL Injection": re.compile(r"(UNION SELECT|SELECT.*FROM|DROP TABLE|OR 1=1|--)", re.IGNORECASE),
-    "Directory Traversal": re.compile(r"\.\./|\.\.\\|%2e%2e%2f|%2e%2e%5c", re.IGNORECASE),
-    "Remote Code Execution": re.compile(r"(wget|curl|bash -i|nc -e|/bin/sh)", re.IGNORECASE),
-    "Brute Force": re.compile(r"(Failed login attempt|Invalid password)", re.IGNORECASE),
-    "File Upload Exploit": re.compile(r"(\.php|\.exe|\.sh)$", re.IGNORECASE),
-    "HTTP Method Abuse": re.compile(r"(TRACE|OPTIONS|CONNECT)", re.IGNORECASE),
-}
+from pathlib import Path
 
 
-def scan_log_file(log_file):
+class LogAnalyzer:
     """
-    Scan a single log file for malicious activity patterns.
-
-    Args:
-        log_file (str): Path to the log file.
-
-    Returns:
-        dict: Detected malicious activities and their counts.
+    LogAnalyzer class to scan logs for malicious patterns.
     """
-    detections = {pattern_name: [] for pattern_name in MALICIOUS_PATTERNS}
 
-    try:
-        with open(log_file, "r") as file:
-            for line_number, line in enumerate(file, start=1):
-                for pattern_name, pattern in MALICIOUS_PATTERNS.items():
-                    if pattern.search(line):
-                        detections[pattern_name].append((line_number, line.strip()))
-    except FileNotFoundError:
-        print(f"Log file not found: {log_file}")
-    except Exception as e:
-        print(f"An error occurred while scanning {log_file}: {e}")
+    MALICIOUS_PATTERNS = {
+        "XSS": re.compile(r"<script>|onerror=|document\.cookie|<iframe>|<img\s+src=|javascript:|vbscript:|alert\(.*\)|eval\(.*\)", re.IGNORECASE),
+        "SQL Injection": re.compile(r"(UNION SELECT|SELECT.*FROM|DROP TABLE|INSERT INTO|DELETE FROM|WHERE.*=.*|OR 1=1|--|;--|\" OR \"|\' OR \'|\"=\"|\'=\')", re.IGNORECASE),
+        "Directory Traversal": re.compile(r"(\.\./|\.\.\\|%2e%2e%2f|%2e%2e%5c|\../|\..\\|\.\.[/\\])", re.IGNORECASE),
+        "Remote Code Execution": re.compile(r"(wget|curl|bash -i|nc -e|/bin/sh|python -c|perl -e|ruby -e|php -r)", re.IGNORECASE),
+        "Brute Force": re.compile(r"(Failed login attempt|Invalid password|Authorization failed|Login incorrect)", re.IGNORECASE),
+        "File Upload Exploit": re.compile(r"(\.php|\.exe|\.sh|\.jsp|\.asp|\.aspx|\.bat|\.py|\.pl)$", re.IGNORECASE),
+        "HTTP Method Abuse": re.compile(r"(TRACE|OPTIONS|CONNECT|HEAD|PUT|DELETE|PROPFIND|MKCOL|COPY|MOVE|LOCK|UNLOCK)", re.IGNORECASE),
+    }
 
-    return detections
+    BRUTE_FORCE_THRESHOLD = 50
 
+    def __init__(self, directory):
+        self.directory = directory
 
-def scan_directory_for_logs(directory):
-    """
-    Scan all .log files in the provided directory for malicious patterns.
+    def scan_log_file(self, log_file):
+        """
+        Scan a single log file for malicious activity patterns.
 
-    Args:
-        directory (str): Path to the directory containing log files.
-    """
-    if not os.path.isdir(directory):
-        print(f"Invalid directory: {directory}")
-        return
+        Args:
+            log_file (str): Path to the log file.
 
-    print(f"Scanning directory: {directory}")
-    log_files = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(".log")]
+        Returns:
+            dict: Detected malicious activities and their counts.
+        """
+        detections = {pattern_name: [] for pattern_name in self.MALICIOUS_PATTERNS}
+        brute_force_count = 0
 
-    if not log_files:
-        print("No .log files found in the directory.")
-        return
+        try:
+            with open(str(log_file), "r") as file:
+                for line_number, line in enumerate(file, start=1):
+                    for pattern_name, pattern in self.MALICIOUS_PATTERNS.items():
+                        if pattern_name == "Brute Force":
+                            if pattern.search(line):
+                                brute_force_count += 1
+                                detections[pattern_name].append((line_number, line.strip()))
+                        elif pattern.search(line):
+                            detections[pattern_name].append((line_number, line.strip()))
 
-    for log_file in log_files:
-        print(f"\nScanning file: {log_file}")
-        results = scan_log_file(log_file)
+            # Check brute force threshold
+            if brute_force_count >= self.BRUTE_FORCE_THRESHOLD:
+                print(f"Brute force attack detected: {brute_force_count} failed attempts.")
 
-        any_detection = False
-        for pattern_name, matches in results.items():
-            if matches:
-                any_detection = True
-                print(f"\n[Detected: {pattern_name}]")
-                for line_number, line_content in matches:
-                    print(f"  Line {line_number}: {line_content}")
+        except FileNotFoundError:
+            print(f"Log file not found: {log_file}")
+        except Exception as e:
+            print(f"An error occurred while scanning {log_file}: {e}")
 
-        if not any_detection:
-            print("No malicious activity detected in this file.")
+        return detections
+
+    def conduct_logs_analysis(self):
+        """
+        Recursively scan all .log files in the provided directory for malicious patterns.
+
+        Returns:
+            dict: A dictionary of log files and their detected patterns.
+        """
+        results = {}
+        if not os.path.isdir(self.directory):
+            return {"error": f"Invalid directory: {self.directory}"}
+
+        log_files = list(Path(self.directory).rglob("*.log"))
+        if not log_files:
+            return {"info": "No .log files found in the directory."}
+
+        for log_file in log_files:
+            file_results = self.scan_log_file(str(log_file))
+            results[log_file] = file_results
+
+        return results
