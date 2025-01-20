@@ -1,11 +1,27 @@
-#!/usr/bin/env python3
 import typer
-from scanner.scanner import Scanner
-from scanner.db_manager import DatabaseManager
-from log_analyzer.log_analyzer import scan_directory_for_logs
+from rich.console import Console
+from rich.text import Text
+from rich.panel import Panel
+from rich.table import Table
+from rich.spinner import Spinner
+from contextlib import contextmanager
+from .scanner.scanner import Scanner
+from .scanner.db_manager import DatabaseManager
+from .log_analyzer.log_analyzer import LogAnalyzer
+import os
 
-app = typer.Typer(help="A CLI tool for integrity checking and log analysis. Use long commands or shortcuts like 'i-i' "
-                       "and 'l-s'.")
+app = typer.Typer()
+console = Console()
+
+
+@contextmanager
+def spinning_message(message):
+    """
+    Display a spinner with a message while executing a block of code.
+    """
+    spinner = Spinner("dots", text=message)
+    with console.status(spinner):
+        yield
 
 
 @app.command("integrity-init")
@@ -14,10 +30,17 @@ def init(directory: str):
     """
     Create a snapshot of the directory for the current state - scan directory, initialize the database, and store metadata.
     """
-    print(f"Creating a snapshot for directory: {directory}")
-    metadata_list = Scanner(directory).scan_directory()
-    DatabaseManager().update_or_insert_metadata(metadata_list)
-    print(f"Initialization complete. Metadata stored in database.")
+    console.print(Text(f"Initialization for directory: {directory}", style="bold"))
+    scanner = Scanner(directory)
+
+    with spinning_message("Scanning and hashing..."):
+        metadata_list = scanner.scan_directory()
+
+    db = DatabaseManager()
+    db.init_db()
+    db.update_or_insert_metadata(metadata_list)
+    console.print(
+        Panel(f"[green]Initialization complete[/green]. Snapshot stored in: {db.db_path}", title="Init", style="bold"))
 
 
 @app.command("integrity-scan")
@@ -26,36 +49,39 @@ def scan(directory: str):
     """
     Scan the target directory and compare results with the last scan stored in the database.
     """
-    print(f"Scanning directory: {directory}")
+    db_path = DatabaseManager().db_path
+    if not os.path.exists(db_path):
+        console.print(Panel(
+            "[red]Snapshot not found. Please run 'integrity-init' first to initialize.[/red]\n Execute: [green]vgls integrity-init /{targetDirectory} [/green]",
+            title="Scanning", style="bold"))
+        return
+
+    console.print(Text(f"Scanning directory: {directory}", style="bold"))
     scanner = Scanner(directory)
-    db_manager = DatabaseManager()
 
-    # Current metadata from the scan
-    current_metadata_list = scanner.scan_directory()
-    current_files = {metadata.path for metadata in current_metadata_list}
+    with spinning_message("Comparing with snapshot..."):
+        results = scanner.compare_with_database()
 
-    # Metadata stored in the database
-    stored_metadata = db_manager.get_all_metadata()
+    if not results:
+        console.print(Panel("[green]No changes detected.[/green]", title="Scanning", style="bold"))
+    else:
+        table = Table(title="Scan Results", style="bold")
+        table.add_column("Change Type", style="bold white")
+        table.add_column("File Path", style="dim")
 
-    # Compare results
-    for metadata in current_metadata_list:
-        stored_entry = stored_metadata.get(metadata.path)
-        if stored_entry:
-            # Check if file has been modified
-            if (stored_entry[1] != metadata.generated_hash or
-                    stored_entry[2] != metadata.size or
-                    stored_entry[3] != metadata.permissions or
-                    stored_entry[4] != metadata.owner or
-                    stored_entry[5] != metadata.modified_time):
-                print(f"Modified: {metadata.path}")
-        else:
-            # New file
-            print(f"New file: {metadata.path}")
+        for change_type, file_path in results:
+            if change_type == "Modified":
+                style = "yellow"
+            elif change_type == "New":
+                style = "bright_red"
+            elif change_type == "Deleted":
+                style = "red"
+            else:
+                style = "white"
 
-    # Detect deleted files
-    for stored_file in stored_metadata.keys():
-        if stored_file not in current_files:
-            print(f"Deleted file: {stored_file}")
+            table.add_row(f"[{style}]{change_type}[/{style}]", file_path)
+
+        console.print(table)
 
 
 @app.command("integrity-update")
@@ -64,21 +90,18 @@ def update(directory: str):
     """
     Update the database with the current file state (when authorized changes were made).
     """
-    print(f"Updating database for directory: {directory}")
+    console.print(Text(f"Updating database for directory: {directory}", style="bold"))
     scanner = Scanner(directory)
     db_manager = DatabaseManager()
 
-    # Current metadata from the scan
-    current_metadata_list = scanner.scan_directory()
-    current_files = {metadata.path for metadata in current_metadata_list}
+    with spinning_message("Updating database with current state..."):
+        current_metadata_list = scanner.scan_directory()
+        current_files = {metadata.path for metadata in current_metadata_list}
 
-    # Update database with new and modified files
-    db_manager.update_or_insert_metadata(current_metadata_list)
+        db_manager.update_or_insert_metadata(current_metadata_list)
+        db_manager.delete_removed_files(current_files)
 
-    # Remove deleted files from the database
-    db_manager.delete_removed_files(current_files)
-
-    print(f"Database updated for directory: {directory}")
+    console.print(Text(f"Database updated for directory: {directory}", style="bold green"))
 
 
 @app.command("log-scan")
@@ -87,8 +110,32 @@ def logs_scan(directory: str):
     """
     Scan all .log files in the provided directory for malicious activity.
     """
-    print(f"Scanning all .log files in directory: {directory}")
-    scan_directory_for_logs(directory)
+    console.print(Text(f"Scanning all .log files in directory: {directory}", style="bold"))
+    with spinning_message("Analyzing logs..."):
+        analyzer = LogAnalyzer(directory)
+        results = analyzer.conduct_logs_analysis()
+
+        # Handle errors or informational messages
+        if "error" in results:
+            console.print(Panel(results["error"], style="bold red"))
+            return
+        if "info" in results:
+            console.print(Panel(results["info"], style="bold yellow"))
+            return
+
+        # Display results in a table
+        table = Table(title="Log Analysis Results", style="bold")
+        table.add_column("Log File", style="bold magenta", overflow="fold")
+        table.add_column("Pattern", style="bold cyan")
+        table.add_column("Line Number", style="bold white")
+        table.add_column("Content", style="dim", overflow="fold")
+
+        for log_file, detections in results.items():
+            for pattern, occurrences in detections.items():
+                for line, content in occurrences:
+                    table.add_row(str(log_file), pattern, str(line), content)
+
+        console.print(table)
 
 
 @app.command("full-scan")
@@ -97,10 +144,10 @@ def full_scan(directory: str):
     """
     Perform a full scan of the directory: integrity checking and log analysis.
     """
-    print("=== Performing Integrity Scan ===")
-    init(directory)
+    console.print(Text("=== Performing Integrity Scan ===", style="bold"))
+    scan(directory)
 
-    print("\n=== Performing Log Analysis ===")
+    console.print(Text("\n=== Performing Log Analysis ===", style="bold"))
     logs_scan(directory)
 
 
