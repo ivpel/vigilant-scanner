@@ -23,42 +23,49 @@ pip install vigilant-scanner
 
 ## 📋 Usage
 
-### CLI Commands
-
-TODO: Add gif with example of usage.
-
-1. **Initialize the Database**
+1. **Initialize Snapshot**
    Create a snapshot of the current directory state and store metadata in the database:
    ```bash
-   vgls init <directory>
+   vgls integrity-init <directory>
    ```
+   ![Alt Text](docs/media/init.gif)
 
 2. **Scan and Compare**
    Scan the directory and compare results with the last snapshot:
    ```bash
-   vgls scan <directory>
+   vgls integrity-scan <directory>
    ```
+   ![Alt Text](docs/media/scan.gif)
 
 3. **Update the Database**
    Update the database with the current state of the directory:
    ```bash
    vgls update <directory>
    ```
+![Alt Text](docs/media/update.gif)
 
+4. **Log analysis**
+   Analyse all logs (all files with .log extension) in provided directory on matching with malicious patterns.
+   ```shell
+   vgls log-scan <directory>
+   ```
+   **Work is still in progress.** Mostly working on malicious signature collection that will be used here.
+![Alt Text](docs/media/logger.png)
+   
 
 ---
 
 ## ⚙️ How It Works
 
 ```bash
-# Initialize the database with the current state of a directory
-vgls init /var/www
+# Create database with the current state of a target directory
+vgls integrity-init /var/www
 
 # Perform a scan to detect changes
-vgls scan /var/www
+vgls integrity-scan /var/www
 
 # Update the database after legitimate changes are made (deploy was conducted etc.)
-vgls update /var/www
+vgls integrity-update /var/www
 ```
 
 1. **Initialization (`init`)**
@@ -72,13 +79,11 @@ vgls update /var/www
    - Updates the database to reflect the latest directory state.
    - Inserts new files, updates modified files, and removes deleted files.
 
-
 ---
 
 ## 📋 Requirements
 
 - Python 3.10+
-- typer
 
 ---
 
