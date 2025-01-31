@@ -1,27 +1,31 @@
-import re
 import os
+import re
+import json
 from pathlib import Path
-
 
 class LogAnalyzer:
     """
     LogAnalyzer class to scan logs for malicious patterns.
     """
 
-    MALICIOUS_PATTERNS = {
-        "XSS": re.compile(r"<script>|onerror=|document\.cookie|<iframe>|<img\s+src=|javascript:|vbscript:|alert\(.*\)|eval\(.*\)", re.IGNORECASE),
-        "SQL Injection": re.compile(r"(UNION SELECT|SELECT.*FROM|DROP TABLE|INSERT INTO|DELETE FROM|WHERE.*=.*|OR 1=1|--|;--|\" OR \"|\' OR \'|\"=\"|\'=\')", re.IGNORECASE),
-        "Directory Traversal": re.compile(r"(\.\./|\.\.\\|%2e%2e%2f|%2e%2e%5c|\../|\..\\|\.\.[/\\])", re.IGNORECASE),
-        "Remote Code Execution": re.compile(r"(wget|curl|bash -i|nc -e|/bin/sh|python -c|perl -e|ruby -e|php -r)", re.IGNORECASE),
-        "Brute Force": re.compile(r"(Failed login attempt|Invalid password|Authorization failed|Login incorrect)", re.IGNORECASE),
-        "File Upload Exploit": re.compile(r"(\.php|\.exe|\.sh|\.jsp|\.asp|\.aspx|\.bat|\.py|\.pl)$", re.IGNORECASE),
-        "HTTP Method Abuse": re.compile(r"(TRACE|OPTIONS|CONNECT|HEAD|PUT|DELETE|PROPFIND|MKCOL|COPY|MOVE|LOCK|UNLOCK)", re.IGNORECASE),
-    }
-
-    BRUTE_FORCE_THRESHOLD = 50
-
-    def __init__(self, directory):
+    def __init__(self, directory, patterns_path=None):
         self.directory = directory
+        self.BRUTE_FORCE_THRESHOLD = 50
+
+        # If no custom path was given, look for `patterns.json` in the same directory as log_analyzer.py
+        if patterns_path is None:
+            base_dir = os.path.dirname(__file__)
+            patterns_path = os.path.join(base_dir, "patterns.json")
+
+        # Load patterns from the JSON file
+        with open(patterns_path, "r") as f:
+            raw_patterns = json.load(f)
+
+        # Compile the regex patterns
+        self.malicious_patterns = {
+            name: re.compile(data["pattern"], re.IGNORECASE)
+            for name, data in raw_patterns.items()
+        }
 
     def scan_log_file(self, log_file):
         """
@@ -33,19 +37,21 @@ class LogAnalyzer:
         Returns:
             dict: Detected malicious activities and their counts.
         """
-        detections = {pattern_name: [] for pattern_name in self.MALICIOUS_PATTERNS}
+        detections = {pattern_name: [] for pattern_name in self.malicious_patterns}
         brute_force_count = 0
 
         try:
             with open(str(log_file), "r") as file:
                 for line_number, line in enumerate(file, start=1):
-                    for pattern_name, pattern in self.MALICIOUS_PATTERNS.items():
-                        if pattern_name == "Brute Force":
+                    for pattern_name, pattern in self.malicious_patterns.items():
+                        # Handle brute force detection specifically
+                        if pattern_name.lower().startswith("brute_force"):
                             if pattern.search(line):
                                 brute_force_count += 1
                                 detections[pattern_name].append((line_number, line.strip()))
-                        elif pattern.search(line):
-                            detections[pattern_name].append((line_number, line.strip()))
+                        else:
+                            if pattern.search(line):
+                                detections[pattern_name].append((line_number, line.strip()))
 
             # Check brute force threshold
             if brute_force_count >= self.BRUTE_FORCE_THRESHOLD:
@@ -75,6 +81,6 @@ class LogAnalyzer:
 
         for log_file in log_files:
             file_results = self.scan_log_file(str(log_file))
-            results[log_file] = file_results
+            results[str(log_file)] = file_results
 
         return results
