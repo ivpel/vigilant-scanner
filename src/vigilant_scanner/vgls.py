@@ -30,15 +30,21 @@ def init(directory: str):
     """
     Create a snapshot of the directory for the current state - scan directory, initialize the database, and store metadata.
     """
+    if not os.path.isdir(directory):
+        console.print(Panel(f"[red]Directory does not exist:[/red] {directory}", title="Initialization", style="bold"))
+        return
+
     console.print(Text(f"Initialization for directory: {directory}", style="bold"))
     scanner = Scanner(directory)
 
     with spinning_message("Scanning and hashing..."):
-        metadata_list = scanner.scan_directory()
+        metadata_list, errors = scanner.scan_directory()
 
-    db = DatabaseManager()
-    db.init_db()
+    db = DatabaseManager(directory)
+    db.reset_db()
     db.update_or_insert_metadata(metadata_list)
+    if errors:
+        console.print(Panel("\n".join(errors), title="Warnings", style="bold yellow"))
     console.print(Panel(f"[green]Initialization completed![/green]\n"
                         f"Target: {directory}\n"
                         f"Stored: {db.db_path}", style="bold"))
@@ -50,10 +56,14 @@ def scan(directory: str):
     """
     Scan the target directory and compare results with the last scan stored in the database.
     """
-    db_path = DatabaseManager().db_path
+    if not os.path.isdir(directory):
+        console.print(Panel(f"[red]Directory does not exist:[/red] {directory}", title="Scanning", style="bold"))
+        return
+
+    db_path = DatabaseManager(directory).db_path
     if not os.path.exists(db_path):
         console.print(Panel(
-            "[red]Snapshot not found. Please run 'integrity-init' first to initialize.[/red]\n Execute: [green]vgls integrity-init /{targetDirectory} [/green]",
+            "[red]Snapshot not found. Please run 'integrity-init' first to initialize.[/red]\n Execute: [green]vgls integrity-init <directory>[/green]",
             title="Scanning", style="bold"))
         return
 
@@ -61,7 +71,7 @@ def scan(directory: str):
     scanner = Scanner(directory)
 
     with spinning_message("Comparing with snapshot..."):
-        results = scanner.compare_with_database()
+        results, errors = scanner.compare_with_database()
 
     if not results:
         console.print(Panel("[green]No changes detected.[/green]", title="Scanning", style="bold"))
@@ -83,6 +93,8 @@ def scan(directory: str):
             table.add_row(f"[{style}]{change_type}[/{style}]", file_path)
 
         console.print(table)
+    if errors:
+        console.print(Panel("\n".join(errors), title="Warnings", style="bold yellow"))
 
 
 @app.command("integrity-update")
@@ -91,12 +103,21 @@ def update(directory: str):
     """
     Update the database with the current file state (when authorized changes were made).
     """
+    if not os.path.isdir(directory):
+        console.print(Panel(f"[red]Directory does not exist:[/red] {directory}", title="Update", style="bold"))
+        return
+
     console.print(Text(f"Updating snapshot for directory: {directory}", style="bold"))
     scanner = Scanner(directory)
-    db_manager = DatabaseManager()
+    db_manager = DatabaseManager(directory)
+    if not os.path.exists(db_manager.db_path):
+        console.print(Panel(
+            "[red]Snapshot not found. Please run 'integrity-init' first to initialize.[/red]\n Execute: [green]vgls integrity-init <directory>[/green]",
+            title="Update", style="bold"))
+        return
 
     with spinning_message("Updating database with current state..."):
-        current_metadata_list = scanner.scan_directory()
+        current_metadata_list, errors = scanner.scan_directory()
         current_files = {metadata.path for metadata in current_metadata_list}
 
         db_manager.update_or_insert_metadata(current_metadata_list)
@@ -105,6 +126,8 @@ def update(directory: str):
     console.print(Panel(f"[green]Snapshot updated![/green]\n"
                         f"Target: {directory}\n"
                         f"Stored: {db_manager.db_path}", style="bold"))
+    if errors:
+        console.print(Panel("\n".join(errors), title="Warnings", style="bold yellow"))
 
 
 @app.command("log-scan")

@@ -13,7 +13,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "typer",
-    "pytest",
+    "rich",
 ]
 
 keywords = ["monitoring", "security", "scanning", "file-integrity",  "directory-scanning", "malware-detection",
@@ -31,6 +31,11 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/ivpel/vigilant-scanner"
 "Bug Tracker" = "https://github.com/ivpel/vigilant-scanner/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
 
 [project.scripts]
 vgls = "vigilant_scanner.vgls:app"

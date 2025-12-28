@@ -8,7 +8,7 @@ from .db_manager import DatabaseManager
 class Scanner:
     def __init__(self, directory):
         self.directory = directory
-        self.db_manager = DatabaseManager()
+        self.db_manager = DatabaseManager(directory)
 
     def _compute_hash(self, file_path):
         """Compute the SHA-256 hash of a file."""
@@ -32,21 +32,28 @@ class Scanner:
         )
 
     def scan_directory(self):
-        """Scan the directory and return metadata for all files, excluding .log files."""
+        """
+        Scan the directory and return metadata for all files (excluding .log files), plus any errors encountered.
+        """
         metadata_list = []
+        errors = []
         for root, _, files in os.walk(self.directory):
             for file in files:
                 if file.endswith(".log"):
                     continue  # Skip .log files
                 full_path = Path(root) / file
-                metadata = self._collect_metadata(full_path)
-                metadata_list.append(metadata)
-        return metadata_list
+                try:
+                    metadata = self._collect_metadata(full_path)
+                    metadata_list.append(metadata)
+                except (OSError, PermissionError) as exc:
+                    errors.append(f"{full_path}: {exc}")
+                    continue
+        return metadata_list, errors
 
     def compare_with_database(self):
-        """Compare the current scan results with the database and return changes."""
+        """Compare the current scan results with the database and return changes plus scan errors."""
 
-        current_metadata_list = self.scan_directory()
+        current_metadata_list, errors = self.scan_directory()
         current_files = {metadata.path: metadata for metadata in current_metadata_list}
 
         stored_metadata = self.db_manager.get_all_metadata()
@@ -73,4 +80,4 @@ class Scanner:
             if stored_file not in current_files:
                 results.append(("Deleted", stored_file))
 
-        return results
+        return results, errors

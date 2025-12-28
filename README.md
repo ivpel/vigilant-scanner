@@ -40,7 +40,7 @@ pip install vigilant-scanner
 3. **Update the Database**
    Update the database with the current state of the directory:
    ```bash
-   vgls update <directory>
+   vgls integrity-update <directory>
    ```
 ![Alt Text](docs/media/update.gif)
 
@@ -104,6 +104,8 @@ To contribute or run the tool locally:
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
+   # or for development
+   pip install -e ".[dev]"
    ```
 
 4. Run tests:
@@ -129,4 +131,3 @@ If you encounter any issues, feel free to open a ticket on the [GitHub Bug Track
 
 - **Homepage**: [Vigilant Scanner on GitHub](https://github.com/ivpel/vigilant-scanner)
 - **Bug Tracker**: [Report Issues](https://github.com/ivpel/vigilant-scanner/issues)
-

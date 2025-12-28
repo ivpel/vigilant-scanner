@@ -1,9 +1,24 @@
+import hashlib
+import os
 import sqlite3
+from pathlib import Path
 
 
 class DatabaseManager:
-    def __init__(self, db_path="vgls_snap.db"):
-        self.db_path = db_path
+    def __init__(self, target_directory=None, db_root=None):
+        """
+        Store snapshots per target directory by hashing the absolute path into the DB filename.
+        """
+        self.db_root = Path(db_root) if db_root else Path.cwd() / ".vgls"
+        self.db_root.mkdir(parents=True, exist_ok=True)
+
+        if target_directory:
+            normalized_target = os.path.abspath(target_directory)
+            digest = hashlib.sha256(normalized_target.encode()).hexdigest()[:16]
+            self.db_path = str(self.db_root / f"vgls_snap_{digest}.db")
+        else:
+            # Fallback for callers that do not scope by directory
+            self.db_path = str(self.db_root / "vgls_snap.db")
 
     def init_db(self):
         conn = sqlite3.connect(self.db_path)
@@ -21,8 +36,15 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
+    def reset_db(self):
+        """Delete existing DB for the target and recreate schema."""
+        if os.path.exists(self.db_path):
+            os.remove(self.db_path)
+        self.init_db()
+
     def get_all_metadata(self):
         """Retrieve all file metadata from the database."""
+        self.init_db()
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM files")
@@ -32,6 +54,7 @@ class DatabaseManager:
 
     def update_or_insert_metadata(self, metadata_list):
         """Update existing records or insert new ones."""
+        self.init_db()
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -65,6 +88,7 @@ class DatabaseManager:
 
     def delete_removed_files(self, current_files):
         """Delete files from the database that are not in the current scan."""
+        self.init_db()
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
